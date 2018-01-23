@@ -12,8 +12,8 @@ From lucosanta:
 
 This is a very rudimental way to collect data from CARLA see <https://github.com/carla-simulator/carla>
 
-It is the carla_example.py which use ai_control data to drive around the town. Using such methodology, 
-the car will drive correctly and at the end, you will find data saved inside the folders. It is not the 
+It is the carla_example.py which use ai_control data to drive around the town. Using such methodology,
+the car will drive correctly and at the end, you will find data saved inside the folders. It is not the
 best thing you could ever see but it works. :)
 
 Enjoy it!
@@ -92,10 +92,10 @@ def print_pack(measurements,i,write_images):
 
 
 	print ('Pack ',i)
-	print ('	Wall Time: ',measurements['WallTime'])	
+	print ('	Wall Time: ',measurements['WallTime'])
 	print ('	Game Time: ',measurements['GameTime'])
 	print ('	Player Measurements ')
-	
+
 	print ('		Position: (%f,%f,%f)' % (measurements['PlayerMeasurements'].\
 		transform.location.x,measurements['PlayerMeasurements'].transform.location.y,\
 		measurements['PlayerMeasurements'].transform.location.z ))
@@ -107,7 +107,7 @@ def print_pack(measurements,i,write_images):
 		acceleration.x,measurements['PlayerMeasurements'].acceleration.y,measurements['PlayerMeasurements'].acceleration.z ))
 	print ('		Speed: ',measurements['PlayerMeasurements'].forward_speed)
 	print ('		Collision Vehicles (Acum. Impact): ',measurements['PlayerMeasurements'].collision_vehicles)
-	print ('		Collision Pedestrians (Acum. Impact): ',measurements['PlayerMeasurements'].collision_pedestrians)	
+	print ('		Collision Pedestrians (Acum. Impact): ',measurements['PlayerMeasurements'].collision_pedestrians)
 	print ('		Collision Other (Acum. Impact): ',measurements['PlayerMeasurements'].collision_other)
 	print ('		Intersection Opposite Lane (% Volume): ',measurements['PlayerMeasurements'].intersection_otherlane)
 	print ('		Intersection Opposite Sidewalk (% Volume): ',measurements['PlayerMeasurements'].intersection_offroad)
@@ -116,10 +116,10 @@ def print_pack(measurements,i,write_images):
 	print ('	',len(measurements['Agents']),' Agents (Positions not printed)')
 	print ('		',end='')
 	for agent in measurements['Agents']:
-		
+
 		if agent.HasField('vehicle'):
 			print ('Car',end='')
-			
+
 		elif agent.HasField('pedestrian'):
 			print ('Pedestrian',end='')
 
@@ -139,21 +139,21 @@ def use_example(ini_file,port = 2000, host ='127.0.0.1',print_measurements =Fals
     # We assume the CARLA server is already waiting for a client to connect at
     # host:port. To create a connection we can use the CARLA
     # constructor, it creates a CARLA client object and starts the
-    # connection. It will throw an exception if something goes wrong. 
+    # connection. It will throw an exception if something goes wrong.
 
 	carla =CARLA(host,port)
-	
+
 	""" As a first step, Carla must have a configuration file loaded. This will load a map in the server
 		with the properties specified by the ini file. It returns all the posible starting positions on the map
 		in a vector.
 	"""
 	positions = carla.loadConfigurationFile(ini_file)
 
-	""" 
+	"""
 		Ask Server for a new episode starting on position of index zero in the positions vector
 	"""
 	carla.newEpisode(0)
-	
+
 	capture = time.time()
 	# General iteratior
 	i = 1
@@ -174,7 +174,7 @@ def use_example(ini_file,port = 2000, host ='127.0.0.1',print_measurements =Fals
 	while True:
 		try:
 			"""
-				User get the measurements dictionary from the server. 
+				User get the measurements dictionary from the server.
 				Measurements contains:
 				* WallTime: Current time on Wall from server machine.
 				* GameTime: Current time on Game. Restarts at every episode
@@ -183,7 +183,7 @@ def use_example(ini_file,port = 2000, host ='127.0.0.1',print_measurements =Fals
 				* BRGA : BGRA optical images
 				* Depth : Depth Images
 				* Labels : Images containing the semantic segmentation. NOTE: the semantic segmentation must be
-					previously activated on the server. See documentation for that. 
+					previously activated on the server. See documentation for that.
 
 			"""
 			measurements = carla.getMeasurements()
@@ -265,8 +265,8 @@ def use_example(ini_file,port = 2000, host ='127.0.0.1',print_measurements =Fals
 
 				carla.sendCommand(control)
 
-					
-			
+
+
 			i+=1
 
 
@@ -276,7 +276,7 @@ def use_example(ini_file,port = 2000, host ='127.0.0.1',print_measurements =Fals
 
 				print('Fps for this episode : ', (1.0 / ((time.time() - capture) / 100.0)))
 
-				""" 
+				"""
                     Starts another new episode, the episode will have the same configuration as the previous
                     one. In order to change configuration, the loadConfigurationFile could be called at any
                     time.
@@ -302,11 +302,11 @@ def use_example(ini_file,port = 2000, host ='127.0.0.1',print_measurements =Fals
 
 			'''
 			if i % RESET_FREQUENCY ==0:
-					
+
 				print ('Fps for this episode : ',(1.0/((time.time() -capture)/100.0)))
 
-				
-				""" 
+
+				"""
 					Starts another new episode, the episode will have the same configuration as the previous
 					one. In order to change configuration, the loadConfigurationFile could be called at any
 					time.
@@ -320,7 +320,7 @@ def use_example(ini_file,port = 2000, host ='127.0.0.1',print_measurements =Fals
 
 				print("Now Starting on Position: ",iterator_start_positions-1)
 				capture = time.time()
-				
+
 			'''
 
 
@@ -336,10 +336,10 @@ if __name__ == "__main__" :
 	parser.add_argument('host', metavar='HOST', type=str, help='host to connect to')
 	parser.add_argument('port', metavar='PORT', type=int, help='port to connect to')
 
-	parser.add_argument("-c", "--config", help="the path for the server ini file that the client sends",type=str,default="CarlaSettings.ini") 
+	parser.add_argument("-c", "--config", help="the path for the server ini file that the client sends",type=str,default="CarlaSettings.ini")
 
 
-	parser.add_argument("-l", "--log", help="activate the log file",action="store_true") 
+	parser.add_argument("-l", "--log", help="activate the log file",action="store_true")
 	parser.add_argument("-lv", "--log_verbose", help="activate log and put the log file to screen",action="store_true")
 
 	parser.add_argument("-pm", "--print", help=" prints the game measurements",action="store_true")
@@ -354,7 +354,7 @@ if __name__ == "__main__" :
 	if args.log or args.log_verbose:
 		LOG_FILENAME = 'log_manual_control.log'
 		logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
-		
+
 		if args.log_verbose:  # set of functions to put the logging to screen
 
 
@@ -370,4 +370,9 @@ if __name__ == "__main__" :
 
 
 
-	use_example(args.config,port=args.port, host=args.host,print_measurements=args.print,images_to_disk= args.images_to_disk,collect_data=True)
+	use_example(args.config,
+			port=args.port,
+	 		host=args.host,
+	 		print_measurements=args.print,
+	 		images_to_disk= args.images_to_disk,
+	 		collect_data=True)
