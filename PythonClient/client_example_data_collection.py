@@ -27,8 +27,8 @@ from carla.util import print_over_same_line
 
 def run_carla_client(host, port, autopilot_on, save_images_to_disk, image_filename_format, settings_filepath, store_vehicle_data):
     # Here we will run 3 episodes with 300 frames each.
-    number_of_episodes = 3
-    frames_per_episode = 300
+    number_of_episodes = 1
+    frames_per_episode = 5000
 
     # We assume the CARLA server is already waiting for a client to connect at
     # host:port. To create a connection we can use the `make_carla_client`
@@ -102,7 +102,8 @@ def run_carla_client(host, port, autopilot_on, save_images_to_disk, image_filena
                 measurements, sensor_data = client.read_data()
 
                 # Print some of the measurements.
-                print_measurements(measurements)
+#######
+                #print_measurements(measurements)
 
                 # Save the images to disk if requested.
                 if save_images_to_disk:
@@ -147,12 +148,12 @@ def run_carla_client(host, port, autopilot_on, save_images_to_disk, image_filena
                     #control.steer += random.uniform(-0.1, 0.1)
                     client.send_control(control)
                     if store_vehicle_data:
-                        print('Sent Frame: ',frame, 'data with acceleration: ',acceleration.x)
+                        print('Frame: ',frame,'vel: ',round(velocity,2),'accel_y: ',round(acceleration.y,3), 'brake: ',control.brake, 'throttle: ',control.throttle)
 
                 # save vehicle measurement data to disk if requested
                 if store_vehicle_data:
-                    if (frame%2) == 0:
-                        print('Collecting measurement data',frame)
+                    if (frame%1) == 0:
+                        #print('Collecting measurement data',frame)
                         datas.append([ frame,control.brake, control.throttle, velocity, acceleration.x, acceleration.y, acceleration.z])
             if store_vehicle_data:
                 df = pd.DataFrame.from_records(datas,
