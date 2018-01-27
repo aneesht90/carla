@@ -1,7 +1,7 @@
 Dist
 Doxygen
 Util/Build
-
+*.h5
 *.VC.db
 *.VC.opendb
 *.kdev4
