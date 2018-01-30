@@ -77,11 +77,17 @@ def get_driving_log_path(image_input_dir):
     return log_path
 
 
+
 def get_dataset_from_csv(image_input_dir):
-    log_path = get_driving_log_path(image_input_dir)
-    #print("Reading from CSV log file", log_path)
-    driving_log = pd.read_csv(log_path, header=None)
-    return driving_log
+    assert (os.path.exists(image_input_dir))
+    log_file_list = glob.glob(os.path.join(image_input_dir, '*.csv'))
+    all_data = pd.DataFrame()
+    for f in log_file_list:
+        df = pd.read_csv(f, header=None)
+        df.drop(df.index[:2], inplace=True)
+        all_data = all_data.append(df,ignore_index=True)
+    #print (all_data)
+    return all_data
 
 
 def get_dataset_from_pickle(pickle_file_path):
@@ -186,7 +192,7 @@ def batch_preprocess(image_input_dir, l_r_correction=0.2, debug=False, measureme
     y_train = np.zeros((num_measurements,2),dtype=np.float32)
     x_train = np.zeros((num_measurements,2),dtype=np.float32)
     print("preprocessing the data. ","number of samples: ",max_measurement_index)
-    while measurement_index < max_measurement_index:
+    while measurement_index < max_measurement_index-1:
         datum_index = (measurement_index - measurement_range[0])
         y_train[datum_index,0] = driving_log.iloc[measurement_index, 2] # brake
         y_train[datum_index,1] = driving_log.iloc[measurement_index, 3] # throttle
