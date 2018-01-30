@@ -37,12 +37,13 @@ from keras import __version__ as keras_version
 
 def main(model=None):
     _model = load_model(model)
-    test_input = np.array((1,2),dtype=np.float32)
+    test_input = np.zeros((1,2))
     velocity = 5
-    acceleration = 0
-    test_input[0]= velocity
-    test_input[1]= acceleration
-    prediction = _model.predict([[5,0],[6,1]], batch_size=1)
+    acceleration = 3
+    test_input[0] = velocity , acceleration
+    #test_input[1] = 6
+    print("network input is: ",test_input)
+    prediction = _model.predict(test_input, batch_size=1)
     brake       = [x[0] for x in prediction]
     throttle    = [x[1] for x in prediction]
     print("prediction is as follows: ","brake: ",brake ," throttle: ",throttle)
