@@ -11,13 +11,18 @@ or
 
 
 # Driving in autopilot model
-
+python PythonClient/client_example.py
 
 # Collect data in autopilot mode
 
 
 # Collect data in manual driving mode
-python PythonClient/data_collection_controller.py -dc -vd
+
+## with drive controller
+python PythonClient/data_collection_controller.py -dc -vd  
+
+## keyboard control
+python PythonClient/data_collection_controller.py  -vd  
 
 
 
@@ -25,3 +30,8 @@ python PythonClient/data_collection_controller.py -dc -vd
 # Train neural network with collected data
 
 python PythonClient/train.py -d 'Measurements/Controller/' -c 100
+
+
+# Run the trained networking
+
+python PythonClient/run.py 
