@@ -174,6 +174,8 @@ class CarlaGame(object):
         self._map_view = self._map.get_map(WINDOW_HEIGHT) if city_name is not None else None
         self._drive_mode = drive_mode
         self._control = VehicleControl()
+        self._control.brake = 0
+        self._control.throttle = 0
         self._store_vehicle_data = store_vehicle_data
         self._datas = []
         self._episode_count = 0
@@ -296,6 +298,12 @@ class CarlaGame(object):
             #     pygame.quit()
             self._on_new_episode()
         else:
+            # if(control.throttle):
+            #     control.brake = 0
+            print("brake: ",control.brake,
+                  " throttle: ",control.throttle,
+                  " hand brake: ",control.hand_brake,
+                  " steer: ",control.steer)
             self.client.send_control(control)
 
     def _test_drive_controller_mode(self, pygame):
@@ -350,15 +358,15 @@ class CarlaGame(object):
                 print ("Motion on axis: ", event.axis)
             if event.axis == 0:
                 control.steer = event.value
-                print("steering: ",control.steer)
+                #print("steering: ",control.steer)
             elif event.axis == 1:
                 if axis_mode ==1:
                     if event.value < 0:
                         control.throttle = abs(event.value)
-                        print ("throttle: ",control.throttle)
+                        #print ("throttle: ",control.throttle)
                     else:
                         control.brake = abs(event.value)
-                        print("brake",control.brake )
+                        #print("brake",control.brake )
                 elif axis_mode == 2:
                         print("test1", self._pedal_value(event.value))
                 elif axis_mode == 3:
@@ -398,6 +406,14 @@ class CarlaGame(object):
             elif event.button in status_buttons:
                 if status_buttons[event.button]== 'start_new_episode':
                     return None
+        control.hand_brake  =   False
+        # as same pedal is used for brake and accelerator
+        if(control.brake < 0.008 or control.throttle > 0.7):
+            control.brake = 0.0
+        if(control.throttle < 0.008 or control.brake > 0.7):
+            control.throttle = 0.0
+
+
         self._control = control
         return control
 
