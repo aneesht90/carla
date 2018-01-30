@@ -24,6 +24,20 @@ from carla.settings import CarlaSettings
 from carla.tcp import TCPConnectionError
 from carla.util import print_over_same_line
 
+
+def user_query():
+    yes = {'yes','y', 'ye', ''}
+    no = {'no','n'}
+    print("Continue with training ?", " Please respond with 'yes' or 'no'")
+    choice = input().lower()
+    if choice in yes:
+        return True
+    elif choice in no:
+        return False
+    else:
+        return None
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train a neural network to autonomously control throttle and brake of a car with given velocity and acceleration. Example syntax:\n\npython model.py -d udacity_dataset -m model.h5')
     parser.add_argument('--dataset-directory', '-d', dest='dataset_directory', type=str, required=True, help='Required string: Directory containing driving log and images.')
@@ -39,9 +53,9 @@ if __name__ == "__main__":
     #dataset_log = utilities.get_dataset_from_csv('Measurements/Controller')
     dataset_size = dataset_log.shape[0]
     validation_batch_size = int(0.2 * dataset_size)
-    measurement_index = 46
-    #print("dataset size is",dataset_size)
-    #print("validation batch size is",validation_batch_size)
+    measurement_index = 0
+    print("dataset size is",dataset_size)
+    print("validation batch size is",validation_batch_size)
     validation_set = utilities.batch_preprocess(args.dataset_directory,
                                                 measurement_range=(measurement_index,
                                                                 measurement_index + validation_batch_size),
@@ -54,19 +68,30 @@ if __name__ == "__main__":
     #print("Training data", X_valid)
     #print("Labels: ",y_valid)
 
-    while measurement_index < dataset_size:
-            end_index = measurement_index + args.cpu_batch_size
-            if end_index < dataset_size:
-                print("Pre-processing from index", measurement_index, "to index", end_index)
-                preprocessed_batch = utilities.batch_preprocess(args.dataset_directory, measurement_range=(measurement_index, end_index))
-            else:
-                print("Pre-processing from index", measurement_index, "to index", dataset_size)
-                preprocessed_batch = utilities.batch_preprocess(args.dataset_directory, measurement_range=(measurement_index, None))
-            X_batch = preprocessed_batch['features']
-            y_batch = preprocessed_batch['labels']
-            print("Done preprocessing.")
-            print("features data shape", X_batch.shape)
-            print("labels data shape", y_batch.shape)
-            model.fit(X_batch, y_batch, validation_data=(X_valid, y_valid), shuffle=True, nb_epoch=15, batch_size=args.gpu_batch_size)
-            measurement_index += args.cpu_batch_size
-    model.save(args.model_path)
+    # raw_input returns the empty string for "enter"
+    exit = False
+    while (exit == False):
+        response = user_query()
+        if(response == True):
+            print("start training")
+            while measurement_index < dataset_size:
+                    end_index = measurement_index + args.cpu_batch_size
+                    if end_index < dataset_size:
+                        print("Pre-processing from index", measurement_index, "to index", end_index)
+                        preprocessed_batch = utilities.batch_preprocess(args.dataset_directory, measurement_range=(measurement_index, end_index))
+                    else:
+                        print("Pre-processing from index", measurement_index, "to index", dataset_size)
+                        preprocessed_batch = utilities.batch_preprocess(args.dataset_directory, measurement_range=(measurement_index, None))
+                    X_batch = preprocessed_batch['features']
+                    y_batch = preprocessed_batch['labels']
+                    print("Done preprocessing.")
+                    print("features data shape", X_batch.shape)
+                    print("labels data shape", y_batch.shape)
+                    model.fit(X_batch, y_batch, validation_data=(X_valid, y_valid), shuffle=True, nb_epoch=150, batch_size=args.gpu_batch_size)
+                    measurement_index += args.cpu_batch_size
+            model.save(args.model_path)
+            exit = True
+        elif (response == False):
+            exit = True
+        else:
+            pass
