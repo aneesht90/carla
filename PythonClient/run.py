@@ -60,6 +60,9 @@ MINI_WINDOW_WIDTH = 320
 MINI_WINDOW_HEIGHT = 180
 
 
+target_speed = 15
+
+
 def make_carla_settings():
     """Make a CarlaSettings object with the settings we need."""
     settings = CarlaSettings()
@@ -86,6 +89,31 @@ def make_carla_settings():
     camera2.set_rotation(0.0, 0.0, 0.0)
     settings.add_sensor(camera2)
     return settings
+
+
+class SimplePIController:
+    def __init__(self, Kp, Ki):
+        self.Kp = Kp
+        self.Ki = Ki
+        self.set_point = 0.
+        self.error = 0.
+        self.integral = 0.
+
+    def set_desired(self, desired):
+        self.set_point = desired
+
+    def update(self, measurement):
+        # proportional error
+        self.error = self.set_point - measurement
+
+        # integral error
+        self.integral += self.error
+
+        return self.Kp * self.error + self.Ki * self.integral
+
+controller = SimplePIController(0.1, 0.002)
+
+controller.set_desired(target_speed)
 
 
 class Timer(object):
@@ -196,10 +224,13 @@ class CarlaGame(object):
             self._timer.lap()
 
         #control = self._get_keyboard_control(pygame.key.get_pressed())
-        velocity = 5
-        accelration = 0
-        control = self._predict(velocity, accelration)
-        print("control requested: throttle: ",control.throttle," brake: ",control.brake)
+        #velocity = target_speed
+        current_speed = measurements.player_measurements.forward_speed
+        target_accelration = controller.update(float(current_speed))
+        control = self._predict(pygame.key.get_pressed(), target_speed, target_accelration)
+        #control_ = self._get_keyboard_control(pygame.key.get_pressed())
+        #control.steer = control_.steer
+        print("control requested: throttle: ",control.throttle," brake: ",control.brake, "steer control: ",control.steer)
         # Set the player position
         if self._city_name is not None:
             self._position = self._map.get_position_on_map([
@@ -213,19 +244,35 @@ class CarlaGame(object):
         else:
             self.client.send_control(control)
 
-    def _predict(self,velocity=20, accelration=1):
-        control = VehicleControl()
+    def _predict(self,keys,velocity=20, acceleration=1):
+
         control = self._control
-        prediction = self._model.predict([[20,1],[6,1]], batch_size=1)
+
+        if keys[K_LEFT] or keys[K_a]:
+            print("steer left")
+            control.steer  = control.steer - 0.02
+        if keys[K_RIGHT] or keys[K_d]:
+            print("steer right")
+            control.steer = control.steer + 0.02
+        if keys[K_q]:
+            self._is_on_reverse = not self._is_on_reverse
+        control.reverse = self._is_on_reverse
+
+
+        test_input = np.zeros((1,2))
+
+        test_input[0] = velocity, acceleration
+        prediction = self._model.predict(test_input, batch_size=1)
         brake       = [x[0] for x in prediction]
         throttle    = [x[1] for x in prediction]
         control.brake       = brake[0]
         control.throttle    = throttle[0]
         if (control.throttle > 0.3):
             control.brake = 0.0
-        control.steer       = random.uniform(-0.05, 0.05)
+
+
         control.hand_brake  = False
-        control.reverse     = False
+
         self._control = control
         return control
     def _get_keyboard_control(self, keys):
