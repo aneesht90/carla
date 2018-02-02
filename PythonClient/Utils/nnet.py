@@ -12,11 +12,27 @@ def easy_drive():
     batch output - batch size * 2
     """
     model = Sequential()
-    model.add(Dense(50, activation="relu",input_dim=2))
-    model.add(Dense(50, activation="relu"))
+    model.add(Dense(30, activation="relu",input_dim=2))
+    #model.add(Dropout(0.8))
+    #model.add(Dense(100, activation="relu"))
+    #model.add(Dense(16, activation="relu"))
+    model.add(Dense(30, activation="relu"))
+    model.add(Dropout(0.2))
     model.add(Dense(2))
     model.compile(optimizer="adam", loss="mse", metrics=['accuracy'])
     return model
+
+def create_model_neurons(neurons=10):
+	# create model
+    model = Sequential()
+    model.add(Dense(neurons, activation="relu",input_dim=2))
+    model.add(Dropout(0.2))
+    model.add(Dense(2))
+	# Compile model
+    model.compile(optimizer="adam", loss="mse", metrics=['accuracy'])
+    #model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    return model
+
 
 
 def test_model():

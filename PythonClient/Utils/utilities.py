@@ -16,6 +16,11 @@ import random
 import sys
 import time
 
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import GridSearchCV
+
+from keras.wrappers.scikit_learn import KerasClassifier
+
 from carla.client import make_carla_client
 from carla.sensor import Camera
 from carla.settings import CarlaSettings
@@ -171,6 +176,82 @@ def batch_preprocess_with_images(image_input_dir, l_r_correction=0.2, debug=Fals
         print('Pre-processed ', measurement_index, ' of ', max_measurement_index, ' measurements. Images:', center_image_filename, ' ', left_image_filename, ' ', right_image_filename)
     preprocessed_dataset = {'features': X_train, 'labels': y_train}
     return preprocessed_dataset
+
+
+
+def hyperparameter_search_model_selection(model_gen, X_train, y_train, param_grid):
+
+    # clf = KerasClassifier(build_fn=model_gen,
+    #                       epochs=50,
+    #                       class_weight=class_weight,
+    #                       verbose=0)
+
+    clf = KerasClassifier(build_fn=model_gen,
+                           verbose=0)
+
+
+    grid = GridSearchCV(estimator=clf,
+                        param_grid=param_grid,
+                        n_jobs=1)
+    #
+    result = grid.fit(X_train, y_train)
+    #
+    # print("Best: %f using %s" % (result.best_score_, result.best_params_))
+    # means = result.cv_results_['mean_test_score']
+    # stds = result.cv_results_['std_test_score']
+    # params = result.cv_results_['params']
+    # for mean, stdev, param in zip(means, stds, params):
+    #     print("%f (%f) with: %r" % (mean, stdev, param))
+
+def hyperparameter_search_over_model(model_gen, dataset_id, param_grid, cutoff=None,
+                                     normalize_timeseries=False):
+
+    X_train, y_train, _, _, is_timeseries = load_dataset_at(dataset_id,
+                                                            normalize_timeseries=normalize_timeseries)
+    max_nb_words, sequence_length = calculate_dataset_metrics(X_train)
+
+    if sequence_length != MAX_SEQUENCE_LENGTH_LIST[dataset_id]:
+        if cutoff is None:
+            choice = cutoff_choice(dataset_id, sequence_length)
+        else:
+            assert cutoff in ['pre', 'post'], 'Cutoff parameter value must be either "pre" or "post"'
+            choice = cutoff
+
+        if choice not in ['pre', 'post']:
+            return
+        else:
+            X_train, _ = cutoff_sequence(X_train, None, choice, dataset_id, sequence_length)
+
+    if not is_timeseries:
+        print("Model hyper parameters can only be searched for time series models")
+        return
+
+    classes = np.unique(y_train)
+    le = LabelEncoder()
+    y_ind = le.fit_transform(y_train.ravel())
+    recip_freq = len(y_train) / (len(le.classes_) *
+                                 np.bincount(y_ind).astype(np.float64))
+    class_weight = recip_freq[le.transform(classes)]
+
+    y_train = to_categorical(y_train, len(np.unique(y_train)))
+
+    clf = KerasClassifier(build_fn=model_gen,
+                          epochs=50,
+                          class_weight=class_weight,
+                          verbose=0)
+
+    grid = GridSearchCV(clf, param_grid=param_grid,
+                        n_jobs=1, verbose=10, cv=3)
+
+    result = grid.fit(X_train, y_train)
+
+    print("Best: %f using %s" % (result.best_score_, result.best_params_))
+    means = result.cv_results_['mean_test_score']
+    stds = result.cv_results_['std_test_score']
+    params = result.cv_results_['params']
+    for mean, stdev, param in zip(means, stds, params):
+        print("%f (%f) with: %r" % (mean, stdev, param))
+
 
 def batch_preprocess(image_input_dir, l_r_correction=0.2, debug=False, measurement_range=None):
     """
