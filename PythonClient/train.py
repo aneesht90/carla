@@ -17,12 +17,20 @@ import sys
 import time
 from Utils import utilities, nnet
 
+from sklearn.model_selection import GridSearchCV
+
+from keras.wrappers.scikit_learn import KerasClassifier
+
 
 from carla.client import make_carla_client
 from carla.sensor import Camera
 from carla.settings import CarlaSettings
 from carla.tcp import TCPConnectionError
 from carla.util import print_over_same_line
+
+
+MODEL_SELECTION_ACTIVE = False
+
 
 
 def user_query():
@@ -42,8 +50,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train a neural network to autonomously control throttle and brake of a car with given velocity and acceleration. Example syntax:\n\npython model.py -d udacity_dataset -m model.h5')
     parser.add_argument('--dataset-directory', '-d', dest='dataset_directory', type=str, required=True, help='Required string: Directory containing driving log and images.')
     parser.add_argument('--model-path', '-m', dest='model_path', type=str, required=False, default='model.h5', help='Required string: Name of model e.g model.h5.')
-    parser.add_argument('--cpu-batch-size', '-c', dest='cpu_batch_size', type=int, required=False, default=1000, help='Optional integer: Image batch size that fits in system RAM. Default 1000.')
-    parser.add_argument('--gpu-batch-size', '-g', dest='gpu_batch_size', type=int, required=False, default=512, help='Optional integer: Image batch size that fits in VRAM. Default 512.')
+    parser.add_argument('--cpu-batch-size', '-c', dest='cpu_batch_size', type=int, required=False, default=100, help='Optional integer: Image batch size that fits in system RAM. Default 1000.')
+    parser.add_argument('--gpu-batch-size', '-g', dest='gpu_batch_size', type=int, required=False, default=64, help='Optional integer: Image batch size that fits in VRAM. Default 512.')
     parser.add_argument('--randomize', '-r', dest='randomize', type=bool, required=False, default=False, help='Optional boolean: Randomize and overwrite driving log. Default False.')
     args = parser.parse_args()
 
@@ -65,6 +73,28 @@ if __name__ == "__main__":
     measurement_index = validation_batch_size  # update measurement index to the end of the validation set
     model = nnet.easy_drive()  # initialize neural network model that will be iteratively trained in batches
 
+    if MODEL_SELECTION_ACTIVE:
+        # define the grid search parameters
+        neurons = [10,20,40]
+        param_grid = dict(neurons=neurons)
+        model_hyp = KerasClassifier(build_fn=nnet.create_model_neurons, epochs=10, batch_size=10, verbose=0)
+        end_index = measurement_index + args.cpu_batch_size
+        preprocessed_batch = utilities.batch_preprocess(args.dataset_directory,
+                                                        measurement_range=(measurement_index, end_index))
+        X_batch = preprocessed_batch['features']
+        y_batch = preprocessed_batch['labels']
+
+        grid = GridSearchCV(estimator=model_hyp, param_grid=param_grid, n_jobs=-1)
+        grid_result = grid.fit(X_batch, y_batch)
+        # summarize results
+        print("Best: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
+        means = grid_result.cv_results_['mean_test_score']
+        stds = grid_result.cv_results_['std_test_score']
+        params = grid_result.cv_results_['params']
+        for mean, stdev, param in zip(means, stds, params):
+            print("%f (%f) with: %r" % (mean, stdev, param))
+
+
     #print("Training data", X_valid)
     #print("Labels: ",y_valid)
 
@@ -75,7 +105,7 @@ if __name__ == "__main__":
         if(response == True):
             print("start training")
             while measurement_index < dataset_size:
-                    end_index = measurement_index + args.cpu_batch_size
+                    end_index = measurement_index + args.cpu_batch_size  # data taken for training based on cpu_batch_size
                     if end_index < dataset_size:
                         print("Pre-processing from index", measurement_index, "to index", end_index)
                         preprocessed_batch = utilities.batch_preprocess(args.dataset_directory, measurement_range=(measurement_index, end_index))
@@ -87,7 +117,7 @@ if __name__ == "__main__":
                     print("Done preprocessing.")
                     print("features data shape", X_batch.shape)
                     print("labels data shape", y_batch.shape)
-                    model.fit(X_batch, y_batch, validation_data=(X_valid, y_valid), shuffle=True, nb_epoch=150, batch_size=args.gpu_batch_size)
+                    model.fit(X_batch, y_batch, validation_data=(X_valid, y_valid), shuffle=True, nb_epoch=5000, batch_size=args.gpu_batch_size)
                     measurement_index += args.cpu_batch_size
             model.save(args.model_path)
             exit = True
