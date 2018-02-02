@@ -29,9 +29,9 @@ python PythonClient/data_collection_controller.py  -vd
 
 # Train neural network with collected data
 
-python PythonClient/train.py -d 'Measurements/Controller/' -c 100
+python PythonClient/train.py -d 'Measurements/Controller/' -c 24000 -g 24000
 
 
 # Run the trained networking
 
-python PythonClient/run.py 
+python PythonClient/run.py
