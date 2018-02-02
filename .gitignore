@@ -26,4 +26,4 @@ _images
 core
 *.csv
 PythonClient/carla/__pycache__
-
+*.tar.gz
