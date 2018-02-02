@@ -60,7 +60,7 @@ MINI_WINDOW_WIDTH = 320
 MINI_WINDOW_HEIGHT = 180
 
 
-target_speed = 15
+target_speed = [15,20,25,15,10]  # 500, 1000, 1500, 2000,2500
 
 
 def make_carla_settings():
@@ -111,9 +111,26 @@ class SimplePIController:
 
         return self.Kp * self.error + self.Ki * self.integral
 
-controller = SimplePIController(0.1, 0.002)
 
-controller.set_desired(target_speed)
+class SimplePController:
+    def __init__(self, Kp):
+        self.Kp = Kp
+        self.set_point = 0.
+        self.error = 0.
+
+    def set_desired(self, desired):
+        self.set_point = desired
+
+    def update(self, measurement):
+        # proportional error
+        self.error = self.set_point - measurement
+
+        return self.Kp * self.error
+
+
+
+
+
 
 
 class Timer(object):
@@ -152,6 +169,7 @@ class CarlaGame(object):
         self._map_view = self._map.get_map(WINDOW_HEIGHT) if city_name is not None else None
         self._model= load_model(model)
         self._control = VehicleControl()
+        self._targetVelocity = 0
 
     def execute(self):
         """Launch the PyGame."""
@@ -226,11 +244,29 @@ class CarlaGame(object):
         #control = self._get_keyboard_control(pygame.key.get_pressed())
         #velocity = target_speed
         current_speed = measurements.player_measurements.forward_speed
-        target_accelration = controller.update(float(current_speed))
-        control = self._predict(pygame.key.get_pressed(), target_speed, target_accelration)
+
+        if self._timer.step < 500:
+            self._targetVelocity = target_speed[0]
+        if self._timer.step >=500 and self._timer.step <1000:
+            self._targetVelocity = target_speed[1]
+        if self._timer.step >1000 and self._timer.step <1500:
+            self._targetVelocity = target_speed[2]
+        if self._timer.step >1500 and self._timer.step <2000:
+            self._targetVelocity = target_speed[2]
+        if self._timer.step >2000 and self._timer.step <2500:
+            self._targetVelocity = target_speed[2]
+
+
+        controller = SimplePController(0.2)
+        controller.set_desired(self._targetVelocity)
+        target_acceleration = controller.update(float(current_speed))
+        #print("target speed is ",self._targetVelocity)
+        #print("target acceleration is ",target_acceleration)
+        control = self._predict(pygame.key.get_pressed(), current_speed, target_acceleration)
         #control_ = self._get_keyboard_control(pygame.key.get_pressed())
         #control.steer = control_.steer
-        print("control requested: throttle: ",control.throttle," brake: ",control.brake, "steer control: ",control.steer)
+        print("ctrl req: throttle: ",round(control.throttle,2),
+        " brake: ",control.brake, "accel: ",round(target_acceleration,3),"tar speed: ",round(self._targetVelocity,2), "steer: ",round(control.steer,2))
         # Set the player position
         if self._city_name is not None:
             self._position = self._map.get_position_on_map([
@@ -261,7 +297,7 @@ class CarlaGame(object):
 
         test_input = np.zeros((1,2))
 
-        test_input[0] = velocity, acceleration
+        test_input[0] = [velocity, acceleration]
         prediction = self._model.predict(test_input, batch_size=1)
         brake       = [x[0] for x in prediction]
         throttle    = [x[1] for x in prediction]
