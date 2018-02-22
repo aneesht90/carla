@@ -226,15 +226,19 @@ class CarlaGame(object):
 
 
         acceleration    = measurements.player_measurements.acceleration
+        orientation     = measurements.player_measurements.transform.orientation
         velocity        = measurements.player_measurements.forward_speed
         if self._store_vehicle_data:
             self._datas.append([ self._timer.step,
                                  round(self._control.brake,3),
                                  round(self._control.throttle,3),
                                  round(velocity,3),
-                                 #round(acceleration.x,3),
-                                 round(acceleration.y,3)
-                                 #round(acceleration.z,3)
+                                 round(acceleration.x,3),
+                                 round(acceleration.y,3),
+                                 round(acceleration.z,3),
+                                 round(orientation.x,3),
+                                 round(orientation.y,3),
+                                 round(orientation.z,3)
                                  ])
 
         self._main_image = sensor_data['CameraRGB']
@@ -288,9 +292,12 @@ class CarlaGame(object):
                                                 'brake',
                                                 'throttle',
                                                 'velocity',
-                                                #'acceleration-x',
-                                                'acceleration-y'
-                                                #'acceleration-z'
+                                                'acceleration-x',
+                                                'acceleration-y',
+                                                'acceleration-z',
+                                                'orientation-x',
+                                                'orientation-y',
+                                                'orientation-z'
                                                 ])
             save_file_name = "./Measurements/Controller/data_records_episode" + str(self._episode_count) +".csv"
             df.to_csv(save_file_name, sep=',', encoding='utf-8')
@@ -300,6 +307,7 @@ class CarlaGame(object):
         else:
             # if(control.throttle):
             #     control.brake = 0
+            #print("test :",measurements.player_measurements.transform)
             print("brake: ",control.brake,
                   " throttle: ",control.throttle,
                   " hand brake: ",control.hand_brake,
@@ -406,6 +414,7 @@ class CarlaGame(object):
             elif event.button in status_buttons:
                 if status_buttons[event.button]== 'start_new_episode':
                     return None
+
         control.hand_brake  =   False
         # as same pedal is used for brake and accelerator
         if(control.brake < 0.008 or control.throttle > 0.7):

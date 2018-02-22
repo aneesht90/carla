@@ -117,7 +117,7 @@ if __name__ == "__main__":
                     print("Done preprocessing.")
                     print("features data shape", X_batch.shape)
                     print("labels data shape", y_batch.shape)
-                    model.fit(X_batch, y_batch, validation_data=(X_valid, y_valid), shuffle=True, nb_epoch=5000, batch_size=args.gpu_batch_size)
+                    model.fit(X_batch, y_batch, validation_data=(X_valid, y_valid), shuffle=True, nb_epoch=2000, batch_size=args.gpu_batch_size)
                     measurement_index += args.cpu_batch_size
             model.save(args.model_path)
             exit = True

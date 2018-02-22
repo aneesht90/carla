@@ -12,11 +12,11 @@ def easy_drive():
     batch output - batch size * 2
     """
     model = Sequential()
-    model.add(Dense(30, activation="relu",input_dim=2))
+    model.add(Dense(10, activation="relu",input_dim=2))
     #model.add(Dropout(0.8))
     #model.add(Dense(100, activation="relu"))
     #model.add(Dense(16, activation="relu"))
-    model.add(Dense(30, activation="relu"))
+    #model.add(Dense(10, activation="relu"))
     model.add(Dropout(0.2))
     model.add(Dense(2))
     model.compile(optimizer="adam", loss="mse", metrics=['accuracy'])

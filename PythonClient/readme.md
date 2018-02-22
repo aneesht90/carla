@@ -1,23 +1,14 @@
-# Run game engine
-
+## Run game engine
 ./CarlaUE4.sh /Game/Maps/Town01 -carla-server -benchmark -fps=15 -windowed -ResX=800 -ResY=600
 or
 ./CarlaUE4.sh /Game/Maps/Town02 -carla-server -benchmark -fps=15 -windowed -ResX=800 -ResY=600
 
-# Manual Driving with keyboard
 
-
-# Manual Driving with Driving Controller
-
-
-# Driving in autopilot model
+## Driving in autopilot model
 python PythonClient/client_example.py
-
-# Collect data in autopilot mode
 
 
 # Collect data in manual driving mode
-
 ## with drive controller
 python PythonClient/data_collection_controller.py -dc -vd  
 
@@ -27,11 +18,8 @@ python PythonClient/data_collection_controller.py  -vd
 
 
 
-# Train neural network with collected data
+## Train neural network with collected data
+python PythonClient/train.py -d 'Measurements/Controller/Preprocessed' -c 6000 -g 6000
 
-python PythonClient/train.py -d 'Measurements/Controller/' -c 24000 -g 24000
-
-
-# Run the trained networking
-
-python PythonClient/run.py
+## Run the trained networking
+python PythonClient/run.py -dc

@@ -45,7 +45,10 @@ if (__name__ == '__main__'):
         default='test',
         help='The name of the log file to be created by the scripts'
     )
-
+    argparser.add_argument(
+        '-dc', '--driving-controller',
+        action='store_true',
+        help='use driving controller for driving')
     args = argparser.parse_args()
 
     log_level = logging.DEBUG if args.debug else logging.INFO

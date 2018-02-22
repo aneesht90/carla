@@ -60,6 +60,46 @@ MINI_WINDOW_WIDTH = 320
 MINI_WINDOW_HEIGHT = 180
 
 
+
+DEBUG = False
+TRAINING_DISABLED = False
+
+
+HOST = "localhost"
+PORT = "50000"
+WHEEL = "G27 Racing Wheel"
+gear_lever_positions = {
+  -1: "reverse",
+  0: "neutral",
+  1: "first",
+  2: "second",
+  3: "third",
+  4: "fourth",
+  5: "fifth",
+  6: "sixth"
+}
+
+status_buttons = {
+  #10: "parking_brake_status",
+  10: "start_new_episode",
+  1: "headlamp_status",
+  3: "high_beam_status",
+  2: "windshield_wiper_status"
+}
+
+gear_lever_position = 0
+parking_brake_status = False
+headlamp_status = False
+high_beam_status = False
+windshield_wiper_status = False
+axis_mode = 1
+
+number_of_episodes = 5
+frames_per_episode = 5000
+
+
+
+
 target_speed = [15,20,25,15,10]  # 500, 1000, 1500, 2000,2500
 
 
@@ -154,7 +194,7 @@ class Timer(object):
 
 
 class CarlaGame(object):
-    def __init__(self, carla_client, city_name=None, model=None):
+    def __init__(self, carla_client, city_name=None, model=None, drive_mode=None):
         self.client = carla_client
         self._timer = None
         self._display = None
@@ -170,11 +210,14 @@ class CarlaGame(object):
         self._model= load_model(model)
         self._control = VehicleControl()
         self._targetVelocity = 0
+        self._drive_mode = drive_mode
 
     def execute(self):
         """Launch the PyGame."""
         pygame.init()
         self._initialize_game()
+        if(self._drive_mode):
+            valid,self._wheel= self._test_drive_controller_mode(pygame)
         try:
             while True:
                 for event in pygame.event.get():
@@ -257,16 +300,16 @@ class CarlaGame(object):
             self._targetVelocity = target_speed[2]
 
 
-        controller = SimplePController(0.2)
+        controller = SimplePController(1.5)
         controller.set_desired(self._targetVelocity)
         target_acceleration = controller.update(float(current_speed))
         #print("target speed is ",self._targetVelocity)
         #print("target acceleration is ",target_acceleration)
-        control = self._predict(pygame.key.get_pressed(), current_speed, target_acceleration)
+        control = self._predict(pygame, current_speed, target_acceleration)
         #control_ = self._get_keyboard_control(pygame.key.get_pressed())
         #control.steer = control_.steer
-        print("ctrl req: throttle: ",round(control.throttle,2),
-        " brake: ",control.brake, "accel: ",round(target_acceleration,3),"tar speed: ",round(self._targetVelocity,2), "steer: ",round(control.steer,2))
+        print("ctrl req: thr: ",round(control.throttle,2),
+        " br: ",control.brake, "acc: ",round(target_acceleration,3),"tar_v: ",round(self._targetVelocity,2), "act_v: ",round(current_speed,2)," steer: ",round(control.steer,2))
         # Set the player position
         if self._city_name is not None:
             self._position = self._map.get_position_on_map([
@@ -280,19 +323,40 @@ class CarlaGame(object):
         else:
             self.client.send_control(control)
 
-    def _predict(self,keys,velocity=20, acceleration=1):
+    def _predict(self,pygame,velocity=20, acceleration=1):
 
+        keys = pygame.key.get_pressed()
         control = self._control
+        if(self._drive_mode):
+            for event in pygame.event.get(pygame.JOYAXISMOTION):
+                if DEBUG:
+                    print ("Motion on axis: ", event.axis)
+                if event.axis == 0:
+                    control.steer = event.value
+            for event in pygame.event.get(pygame.JOYBUTTONDOWN):
+                if DEBUG:
+                    print ("Pressed button is", event.button)
+                if event.button == 0:
+                    print ("pressed button 0 - bye...")
+                    stop()
+                    exit(0)
+                elif event.button == 11:
+                    print("reverse gear")
+                    self._is_on_reverse = not self._is_on_reverse
+                    control.reverse = self._is_on_reverse
+        else:
+            if keys[K_LEFT] or keys[K_a]:
+                print("steer left")
+                control.steer  = control.steer - 0.02
+            if keys[K_RIGHT] or keys[K_d]:
+                print("steer right")
+                control.steer = control.steer + 0.02
+            if keys[K_q]:
+                self._is_on_reverse = not self._is_on_reverse
+            control.reverse = self._is_on_reverse
 
-        if keys[K_LEFT] or keys[K_a]:
-            print("steer left")
-            control.steer  = control.steer - 0.02
-        if keys[K_RIGHT] or keys[K_d]:
-            print("steer right")
-            control.steer = control.steer + 0.02
-        if keys[K_q]:
-            self._is_on_reverse = not self._is_on_reverse
-        control.reverse = self._is_on_reverse
+
+
 
 
         test_input = np.zeros((1,2))
@@ -307,10 +371,36 @@ class CarlaGame(object):
             control.brake = 0.0
 
 
-        control.hand_brake  = False
+
+        # direct P controller
+        if TRAINING_DISABLED:
+            if(acceleration>=0):
+                throttle =  acceleration
+                brake    = 0
+            else:
+                brake    = -acceleration
+                throttle = 0
+            control.hand_brake  = False
 
         self._control = control
         return control
+
+
+    def _test_drive_controller_mode(self, pygame):
+        """
+        G27 steering wheel check.
+        """
+        #print("testing the drive controller")
+        wheel = None
+        for j in range(0,pygame.joystick.get_count()):
+            if pygame.joystick.Joystick(j).get_name() == WHEEL:
+                wheel = pygame.joystick.Joystick(j)
+                wheel.init()
+                #print ("Found", wheel.get_name())
+                return True, wheel
+        if not wheel:
+            print ("No G27 steering wheel found")
+            return False, None
     def _get_keyboard_control(self, keys):
         """
         Return a VehicleControl message based on the pressed keys. Return None
@@ -444,6 +534,10 @@ def main():
         default='model.h5',
         help='Path to model h5 file. Model should be on the same path.'
     )
+    argparser.add_argument(
+        '-dc', '--driving-controller',
+        action='store_true',
+        help='use driving controller for driving')
     args = argparser.parse_args()
 
     log_level = logging.DEBUG if args.debug else logging.INFO
@@ -457,7 +551,7 @@ def main():
         try:
 
             with make_carla_client(args.host, args.port) as client:
-                game = CarlaGame(client, args.map_name, model=args.model)
+                game = CarlaGame(client, args.map_name, model=args.model, drive_mode=args.driving_controller)
                 game.execute()
                 break
 
