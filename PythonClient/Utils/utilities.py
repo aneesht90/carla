@@ -178,7 +178,7 @@ def batch_preprocess_with_images(image_input_dir, l_r_correction=0.2, debug=Fals
     return preprocessed_dataset
 
 
-
+# note : to be implemented
 def hyperparameter_search_model_selection(model_gen, X_train, y_train, param_grid):
 
     # clf = KerasClassifier(build_fn=model_gen,
@@ -203,6 +203,7 @@ def hyperparameter_search_model_selection(model_gen, X_train, y_train, param_gri
     # for mean, stdev, param in zip(means, stds, params):
     #     print("%f (%f) with: %r" % (mean, stdev, param))
 
+# note : to be implemented
 def hyperparameter_search_over_model(model_gen, dataset_id, param_grid, cutoff=None,
                                      normalize_timeseries=False):
 
