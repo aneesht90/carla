@@ -16,7 +16,6 @@ import random
 import sys
 import time
 from Utils import utilities, nnet
-
 from carla import image_converter
 from carla import sensor
 from carla.client import make_carla_client, VehicleControl
@@ -24,18 +23,13 @@ from carla.planner.map import CarlaMap
 from carla.settings import CarlaSettings
 from carla.tcp import TCPConnectionError
 from carla.util import print_over_same_line
-
-
-
-
 import argparse
 import base64
 from datetime import datetime
 import os
 import shutil
-
-
 import numpy as np
+import h5py
 import socketio
 import eventlet
 import eventlet.wsgi
@@ -44,7 +38,6 @@ from flask import Flask
 from io import BytesIO
 
 from keras.models import load_model
-import h5py
 from keras import __version__ as keras_version
 
 try:
@@ -58,13 +51,8 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 MINI_WINDOW_WIDTH = 320
 MINI_WINDOW_HEIGHT = 180
-
-
-
 DEBUG = False
 TRAINING_DISABLED = False
-
-
 HOST = "localhost"
 PORT = "50000"
 WHEEL = "G27 Racing Wheel"
@@ -78,7 +66,6 @@ gear_lever_positions = {
   5: "fifth",
   6: "sixth"
 }
-
 status_buttons = {
   #10: "parking_brake_status",
   10: "start_new_episode",
@@ -86,20 +73,14 @@ status_buttons = {
   3: "high_beam_status",
   2: "windshield_wiper_status"
 }
-
 gear_lever_position = 0
 parking_brake_status = False
 headlamp_status = False
 high_beam_status = False
 windshield_wiper_status = False
 axis_mode = 1
-
 number_of_episodes = 5
 frames_per_episode = 5000
-
-
-
-
 target_speed = [15,20,25,15,10]  # 500, 1000, 1500, 2000,2500
 
 
@@ -164,12 +145,7 @@ class SimplePController:
     def update(self, measurement):
         # proportional error
         self.error = self.set_point - measurement
-
         return self.Kp * self.error
-
-
-
-
 
 
 
@@ -281,13 +257,10 @@ class CarlaGame(object):
                 self._print_player_measurements(measurements.player_measurements)
 
             # Plot position on the map as well.
-
             self._timer.lap()
 
-        #control = self._get_keyboard_control(pygame.key.get_pressed())
-        #velocity = target_speed
         current_speed = measurements.player_measurements.forward_speed
-
+        # changing the target velocity of vehicles
         if self._timer.step < 500:
             self._targetVelocity = target_speed[0]
         if self._timer.step >=500 and self._timer.step <1000:
@@ -303,11 +276,8 @@ class CarlaGame(object):
         controller = SimplePController(1.5)
         controller.set_desired(self._targetVelocity)
         target_acceleration = controller.update(float(current_speed))
-        #print("target speed is ",self._targetVelocity)
-        #print("target acceleration is ",target_acceleration)
         control = self._predict(pygame, current_speed, target_acceleration)
-        #control_ = self._get_keyboard_control(pygame.key.get_pressed())
-        #control.steer = control_.steer
+
         print("ctrl req: thr: ",round(control.throttle,2),
         " br: ",control.brake, "acc: ",round(target_acceleration,3),"tar_v: ",round(self._targetVelocity,2), "act_v: ",round(current_speed,2)," steer: ",round(control.steer,2))
         # Set the player position
@@ -355,10 +325,6 @@ class CarlaGame(object):
                 self._is_on_reverse = not self._is_on_reverse
             control.reverse = self._is_on_reverse
 
-
-
-
-
         test_input = np.zeros((1,2))
 
         test_input[0] = [velocity, acceleration]
@@ -369,8 +335,6 @@ class CarlaGame(object):
         control.throttle    = throttle[0]
         if (control.throttle > 0.3):
             control.brake = 0.0
-
-
 
         # direct P controller
         if TRAINING_DISABLED:
@@ -549,7 +513,6 @@ def main():
 
     while True:
         try:
-
             with make_carla_client(args.host, args.port) as client:
                 game = CarlaGame(client, args.map_name, model=args.model, drive_mode=args.driving_controller)
                 game.execute()

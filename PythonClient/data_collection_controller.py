@@ -12,6 +12,7 @@
 """
 Welcome to CARLA manual control.
 
+Keyboard control :
 Use ARROWS or WASD keys for control.
 
     W            : throttle
@@ -223,7 +224,7 @@ class CarlaGame(object):
         self._timer.tick()
 
         measurements, sensor_data = self.client.read_data()
-
+        # storing vehicle measurements for offline training
 
         acceleration    = measurements.player_measurements.acceleration
         orientation     = measurements.player_measurements.transform.orientation
@@ -270,13 +271,12 @@ class CarlaGame(object):
 
             self._timer.lap()
         if (self._drive_mode):
-            #print("drive controller mode")
-            #if(self._test_drive_controller_mode(pygame)):
-            #    print("drive controller - works!!")
+            # control using Logitech G27
             control = self._get_drive_controller_control(pygame)
-            #control = self._get_keyboard_control(pygame.key.get_pressed())
         else:
+            # control using keyboard keys
             control = self._get_keyboard_control(pygame.key.get_pressed())
+
         # Set the player position
         if self._city_name is not None:
             self._position = self._map.get_position_on_map([
@@ -301,13 +301,8 @@ class CarlaGame(object):
                                                 ])
             save_file_name = "./Measurements/Controller/data_records_episode" + str(self._episode_count) +".csv"
             df.to_csv(save_file_name, sep=',', encoding='utf-8')
-            # if self._episode_count == number_of_episodes:
-            #     pygame.quit()
             self._on_new_episode()
         else:
-            # if(control.throttle):
-            #     control.brake = 0
-            #print("test :",measurements.player_measurements.transform)
             print("brake: ",control.brake,
                   " throttle: ",control.throttle,
                   " hand brake: ",control.hand_brake,
@@ -403,8 +398,6 @@ class CarlaGame(object):
                 print("reverse gear")
                 self._is_on_reverse = not self._is_on_reverse
                 control.reverse = self._is_on_reverse
-                #send_data("ignition_status","start")
-                #print("ignition_status - start")
             elif event.button >= 12 and event.button <= 17:
                 gear = event.button - 11
                 print("gear_lever_position", gear_lever_positions[gear])

@@ -9,28 +9,18 @@
 """Basic CARLA client example."""
 
 from __future__ import print_function
-
 import argparse
 import logging
 import random
 import sys
 import time
 from Utils import utilities, nnet
-
-from sklearn.model_selection import GridSearchCV
-
 from keras.wrappers.scikit_learn import KerasClassifier
-
-
 from carla.client import make_carla_client
 from carla.sensor import Camera
 from carla.settings import CarlaSettings
 from carla.tcp import TCPConnectionError
 from carla.util import print_over_same_line
-
-
-MODEL_SELECTION_ACTIVE = False
-
 
 
 def user_query():
@@ -56,9 +46,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
-    #print("log folder is:", args.dataset_directory)
+
     dataset_log = utilities.get_dataset_from_csv(args.dataset_directory)
-    #dataset_log = utilities.get_dataset_from_csv('Measurements/Controller')
     dataset_size = dataset_log.shape[0]
     validation_batch_size = int(0.2 * dataset_size)
     measurement_index = 0
@@ -73,30 +62,6 @@ if __name__ == "__main__":
     measurement_index = validation_batch_size  # update measurement index to the end of the validation set
     model = nnet.easy_drive()  # initialize neural network model that will be iteratively trained in batches
 
-    if MODEL_SELECTION_ACTIVE:
-        # define the grid search parameters
-        neurons = [10,20,40]
-        param_grid = dict(neurons=neurons)
-        model_hyp = KerasClassifier(build_fn=nnet.create_model_neurons, epochs=10, batch_size=10, verbose=0)
-        end_index = measurement_index + args.cpu_batch_size
-        preprocessed_batch = utilities.batch_preprocess(args.dataset_directory,
-                                                        measurement_range=(measurement_index, end_index))
-        X_batch = preprocessed_batch['features']
-        y_batch = preprocessed_batch['labels']
-
-        grid = GridSearchCV(estimator=model_hyp, param_grid=param_grid, n_jobs=-1)
-        grid_result = grid.fit(X_batch, y_batch)
-        # summarize results
-        print("Best: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
-        means = grid_result.cv_results_['mean_test_score']
-        stds = grid_result.cv_results_['std_test_score']
-        params = grid_result.cv_results_['params']
-        for mean, stdev, param in zip(means, stds, params):
-            print("%f (%f) with: %r" % (mean, stdev, param))
-
-
-    #print("Training data", X_valid)
-    #print("Labels: ",y_valid)
 
     # raw_input returns the empty string for "enter"
     exit = False
